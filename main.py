@@ -8,6 +8,7 @@ import logging
 from datetime import datetime
 import socket
 from threading import Thread
+from jinja2 import Environment, FileSystemLoader
 
 BASE_DIR = Path()
 BUFFER_SIZE = 1024
@@ -16,6 +17,7 @@ HTTP_HOST = '0.0.0.0'
 SOCKET_HOST = '127.0.0.1'
 SOCKET_PORT = 5000
 
+jinja = Environment(loader=FileSystemLoader('templates'))
 
 
 class HttpHandler(BaseHTTPRequestHandler):
@@ -26,6 +28,8 @@ class HttpHandler(BaseHTTPRequestHandler):
                 self.send_html_file('index.html')
             case '/message.html':
                 self.send_html_file('message.html')
+            case '/blog':
+                self.render_template('blog.jinja')
             case _:
                 file = BASE_DIR.joinpath(pr_url.path[1:])
                 if file.exists():
@@ -39,7 +43,7 @@ class HttpHandler(BaseHTTPRequestHandler):
         self.end_headers()
         with open(filename, 'rb') as fd:
             self.wfile.write(fd.read())
-    
+
     def send_static_file(self, filename, status=200):
         self.send_response(status)
         mime_type, *_ = mimetypes.guess_type(filename)
@@ -50,6 +54,18 @@ class HttpHandler(BaseHTTPRequestHandler):
         self.end_headers()
         with open(filename, 'rb') as fd:
             self.wfile.write(fd.read())
+
+    def render_template(self, filename, status=200):
+        self.send_response(status)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+
+        with open('storage/data.json', 'r', encoding='utf-8') as file:
+            data = json.load(file)
+
+        template = jinja.get_template(filename)
+        html = template.render(blogs=data)
+        self.wfile.write(html.encode())
 
     def do_POST(self):
         size = self.headers.get('Content-Length')
