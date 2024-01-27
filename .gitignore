@@ -1,0 +1,8 @@
+# .gitignore
+
+
+# PyCharm
+.idea/
+
+# Файл data.json
+storage/
